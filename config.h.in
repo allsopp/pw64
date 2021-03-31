@@ -1,0 +1,7 @@
+#define PACKAGE_VERSION "@version@"
+#define PACKAGE_NAME "@name@"
+
+#define ROUNDS 5000000
+#define LENGTH 12
+#define MAXINPUT 63
+#define DELIM ":"
