@@ -1,5 +1,7 @@
 # pw64
 
+[![default](https://github.com/allsopp/pw64/actions/workflows/default.yml/badge.svg)](https://github.com/allsopp/pw64/actions/workflows/default.yml)
+
 Deterministic password manager with Base64 output
 
 ## Description
@@ -12,7 +14,7 @@ deterministic password, encoded in Base64.
 
 On Debian-based systems:
 
-	# apt install gcc meson nettle-dev ninja-build
+	# apt install gcc meson nettle-dev ninja-build pkg-config
 
 ## How to build
 
