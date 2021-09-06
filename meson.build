@@ -1,11 +1,10 @@
 project('pw64', 'c',
   version: '0.2.0',
-  default_options: [ 'c_std=c99', 'warning_level=3', 'werror=true' ])
+  meson_version: '>=0.53.2',
+  default_options: ['c_std=c99', 'warning_level=3'])
 
 src = ['base64.c', 'password.c', 'main.c']
-
 deps = [ dependency('nettle', version: '>=3.4') ]
-
 args = []
 
 if meson.get_compiler('c').get_id() == 'gcc'
