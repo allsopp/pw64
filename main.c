@@ -1,5 +1,3 @@
-#define _POSIX_C_SOURCE 2
-
 #include "types.h"
 
 #include "config.h"
@@ -7,8 +5,8 @@
 
 #include <signal.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #define USAGE "usage: %s [-2] [-c] [-l <num>] [-n <num>] <word>\n"
@@ -16,17 +14,16 @@
 static void
 reset(int sig)
 {
-	if (sig) {
-		password_echo(true);
-		fputc('\n', stderr);
-		exit(EXIT_FAILURE);
-	}
+	(void)sig;
+	password_echo(true);
+	fputc('\n', stderr);
+	exit(EXIT_FAILURE);
 }
 
 static void
-help(char const *arg0)
+usage(const char **s)
 {
-	fprintf(stderr, USAGE, arg0);
+	fprintf(stderr, USAGE, s[0]);
 }
 
 int
@@ -37,8 +34,8 @@ main(int argc, char **argv)
 	size_t length = LENGTH;
 	bool chomp = false;
 	bool twice = false;
-	char const *arg0 = *argv;
-	struct password *pw;
+	const char *u[] = { *argv };
+	struct password pw;
 
 	while ((c = getopt(argc, argv, "2chl:n:")) != -1) {
 		switch(c) {
@@ -51,18 +48,16 @@ main(int argc, char **argv)
 		case 'n':
 			if ((rounds = atoi(optarg)) > 0)
 				break;
-			fputs("error: number of iterations"
-				" must be at least one\n", stderr);
+			fputs("number of iterations must be at least one\n", stderr);
 			return EXIT_FAILURE;
 		case 'l':
 			if ((length = atoi(optarg)) > 0)
 				break;
-			fputs("error: minimum password length"
-				" is one character\n", stderr);
+			fputs("minimum password length is one character\n", stderr);
 			return EXIT_FAILURE;
 		case 'h':
 		default:
-			help(arg0);
+			usage(u);
 			return EXIT_FAILURE;
 		}
 	}
@@ -71,28 +66,30 @@ main(int argc, char **argv)
 	argv += optind;
 
 	if (argc < 1) {
-		help(arg0);
+		usage(u);
 		return EXIT_FAILURE;
 	}
 
-	if (signal(SIGINT, reset) == SIG_ERR)
-		fputs("WARNING: couldn't install SIGINT handler\n", stderr);
+	(void)signal(SIGINT, reset);
 
-	pw = password_new(*argv);
+	if (password_init(&pw, *argv))
+		return EXIT_FAILURE;
 
-	password_prompt(pw, "Enter master password: ");
-	if (twice)
-		password_prompt(pw, "Verify master password: ");
+	for (int i = 0; i < 2; ++i) {
+		const char *s = i ? "Repeat primary password: "
+		                  : "Enter primary password: ";
+		if (!password_prompt(&pw, s))
+			return EXIT_FAILURE;
+		if (!twice)
+			break;
+	}
 
-	password_derive(pw, rounds);
+	(void)password_derive(&pw, rounds);
+	if (!password_encode(&pw))
+		return EXIT_FAILURE;
 
-	/* Digested input, encoded in Base64 */
-	password_encode(pw);
-	password_print(pw, length);
+	password_print(&pw, length);
 
-	password_delete(pw);
-
-	/* Chomp suppresses trailing newline: */
 	if (!chomp)
 		putchar('\n');
 

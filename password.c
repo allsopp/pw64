@@ -1,62 +1,38 @@
-#define _POSIX_C_SOURCE 200809L
-
 #include "types.h"
-
 #include "base64.h"
 #include "config.h"
 
+#include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <stdbool.h>
+
 #include <nettle/hmac.h>
 #include <nettle/pbkdf2.h>
 
-struct password *
-password_new(char const *prefix)
+int
+password_init(struct password *pw, const char *prefix)
 {
-	struct password *pw;
-
-	pw = malloc(sizeof *pw);
-	if (pw == NULL) {
-		fputs("ERROR: couldn't allocate memory\n", stderr);
-		exit(EXIT_FAILURE);
-	}
-	pw->prompt_count = 0;
+	assert(pw);
 
 	pw->input = malloc(1+ strlen(prefix) + strlen(DELIM) + MAXINPUT);
-	if (pw->input == NULL) {
-		fputs("ERROR: couldn't allocate memory\n", stderr);
-		exit(EXIT_FAILURE);
-	}
-	strcpy(pw->input, prefix);
-	strcat(pw->input, DELIM);
-	pw->master = pw->input + strlen(pw->input);
-
-	pw->output = strdup(""); /* just a placeholder that can be freed later */
-	if (pw->output == NULL) {
-		fputs("ERROR: couldn't allocate memory\n", stderr);
-		exit(EXIT_FAILURE);
-	}
+	if (!pw->input)
+		return -1;
 
 	pw->buffer = calloc(1, SHA256_DIGEST_SIZE);
-	if (pw->buffer == NULL) {
-		fputs("ERROR: couldn't allocate memory\n", stderr);
-		exit(EXIT_FAILURE);
-	}
+	if (!pw->buffer)
+		return -1;
 
-	return pw;
-}
+	strcpy(pw->input, prefix);
+	strcat(pw->input, DELIM);
+	pw->primary = pw->input + strlen(pw->input);
+	pw->prompt_count = 0;
+	pw->output = NULL;
 
-void
-password_delete(struct password *pw)
-{
-	free(pw->input);
-	free(pw->buffer);
-	free(pw->output);
-	free(pw);
+	return 0;
 }
 
 /* Disabling the ECHO bit prevents stdin being echoed: password is secret! */
@@ -66,29 +42,28 @@ password_echo(bool echo)
 	struct termios t;
 
 	tcgetattr(fileno(stdin), &t);
-
 	if (echo)
 		t.c_lflag |= ECHO;
 	else
 		t.c_lflag &= ~ECHO;
-
 	tcsetattr(fileno(stdin), TCSADRAIN, &t);
 }
 
 char *
-password_prompt(struct password *pw, char const *msg)
+password_prompt(struct password *pw, const char *msg)
 {
 	char entry[MAXINPUT+1];
+	assert(pw);
 
 	if (isatty(fileno(stdin))) {
 		fputs(msg, stderr);
 		password_echo(false);
 	}
 
-	if ((fgets(entry, sizeof entry, stdin)) == NULL) {
+	if (!(fgets(entry, sizeof entry, stdin))) {
 		password_echo(true);
-		fputs("ERROR: couldn't read password\n", stderr);
-		exit(EXIT_FAILURE);
+		fputs("couldn't read password\n", stderr);
+		return NULL;
 	}
 
 	if (isatty(fileno(stdin))) {
@@ -100,26 +75,30 @@ password_prompt(struct password *pw, char const *msg)
 	entry[strcspn(entry, "\r\n")] = '\0';
 
 	if (pw->prompt_count++ /* short circuit on the first prompt */
-		&& strlen(pw->master) + strlen(entry) /* special case for empty string */
-		&& strcmp(pw->master, entry) != 0)
+		&& strlen(pw->primary) + strlen(entry) /* special case for empty string */
+		&& strcmp(pw->primary, entry) != 0)
 	{
-		fputs("ERROR: passwords do not match\n", stderr);
-		exit(EXIT_FAILURE);
+		fputs("passwords do not match\n", stderr);
+		return NULL;
 	}
 
-	return strcpy(pw->master, entry);
+	return strcpy(pw->primary, entry);
 }
 
 size_t
 password_encode(struct password *pw)
 {
+	assert(pw);
 	free(pw->output);
-	return base64enc(&(pw->output), pw->buffer, SHA256_DIGEST_SIZE);
+	return base64enc(&pw->output, pw->buffer, SHA256_DIGEST_SIZE);
 }
 
 void
 password_print(struct password *pw, size_t len)
 {
+	assert(pw);
+	if (!pw->output)
+		return;
 	if (len < strlen(pw->output)) {
 		char const *c = pw->output;
 		while (len--)
@@ -133,9 +112,10 @@ unsigned char *
 password_derive(struct password *pw, unsigned long rounds)
 {
 	struct hmac_sha256_ctx ctx;
+	assert(pw);
 
 	hmac_sha256_set_key(&ctx, strlen(pw->input),
-		(unsigned char const *)pw->input);
+		(const unsigned char *)pw->input);
 	PBKDF2(&ctx,
 		hmac_sha256_update,
 		hmac_sha256_digest,

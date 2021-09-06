@@ -44,19 +44,19 @@ base64char(unsigned char b)
  *
  * The string is then padded with '=' until its length is a multiple of 4.
  */
-size_t
-base64enc(char **output, unsigned char const *data, int bytes)
+int
+base64enc(char **output, const unsigned char *data, int bytes)
 {
 	int i, j = -1;
 	char *buffer;
 
-	assert(data != NULL);
-	assert(output != NULL);
+	assert(data);
+	assert(output);
 
 	buffer = malloc(1+ LENGTH(bytes));
-	if (buffer == NULL) {
-		fputs("ERROR: couldn't allocate memory\n", stderr);
-		exit(EXIT_FAILURE);
+	if (!buffer) {
+		fputs("out of memory\n", stderr);
+		return -1;
 	}
 
 	for (i = 0; i < bytes; i++) {

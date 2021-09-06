@@ -1,2 +1,2 @@
 #include <stdlib.h>
-size_t base64enc(char **, unsigned char const *, int);
+int base64enc(char **, const unsigned char *, int);
