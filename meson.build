@@ -6,6 +6,12 @@ src = ['base64.c', 'password.c', 'main.c']
 
 deps = [ dependency('nettle', version: '>=3.4') ]
 
+args = []
+
+if meson.get_compiler('c').get_id() == 'gcc'
+  args += ['-D_POSIX_C_SOURCE=2']
+endif
+
 config = configuration_data()
 config.set('version', meson.project_version())
 config.set('name', meson.project_name())
@@ -15,5 +21,5 @@ configure_file(
   configuration: config
 )
 
-pw64 = executable('pw64', src, dependencies: deps, install: true)
+pw64 = executable('pw64', src, dependencies: deps, c_args: args, install: true)
 subdir('tests')
