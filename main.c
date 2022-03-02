@@ -9,7 +9,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define USAGE "usage: %s [-2] [-c] [-l <num>] [-n <num>] <word>\n"
+#define USAGE "usage: %s [-2] [-c] [-l <num>] [-n <num>] <word>\n" \
+              "       %s -v\n"
 
 static void
 reset(int sig)
@@ -23,7 +24,7 @@ reset(int sig)
 static void
 usage(const char **s)
 {
-	fprintf(stderr, USAGE, s[0]);
+	fprintf(stderr, USAGE, *s, *s);
 }
 
 int
@@ -37,7 +38,7 @@ main(int argc, char **argv)
 	const char *u[] = { *argv };
 	struct password pw;
 
-	while ((c = getopt(argc, argv, "2chl:n:")) != -1) {
+	while ((c = getopt(argc, argv, "2chl:n:v")) != -1) {
 		switch(c) {
 		case '2':
 			twice = true;
@@ -55,6 +56,9 @@ main(int argc, char **argv)
 				break;
 			fputs("minimum password length is one character\n", stderr);
 			return EXIT_FAILURE;
+		case 'v':
+			printf("%s (version %s)\n", PACKAGE_NAME, PACKAGE_VERSION);
+			return EXIT_SUCCESS;
 		case 'h':
 		default:
 			usage(u);

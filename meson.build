@@ -1,5 +1,5 @@
 project('pw64', 'c',
-  version: '0.2.0',
+  version: '0.2.1',
   meson_version: '>=0.53.2',
   default_options: ['c_std=c99', 'warning_level=3'])
 
