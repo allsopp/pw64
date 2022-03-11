@@ -1,6 +1,6 @@
 # pw64
 
-[![default](https://github.com/allsopp/pw64/actions/workflows/default.yml/badge.svg)](https://github.com/allsopp/pw64/actions/workflows/default.yml)
+[![builds.sr.ht status](https://builds.sr.ht/~allsopp/pw64.svg)](https://builds.sr.ht/~allsopp/pw64?)
 
 Deterministic password manager with Base64 output
 

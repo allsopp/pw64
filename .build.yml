@@ -1,0 +1,13 @@
+image: ubuntu/lts
+packages:
+- meson
+- nettle-dev
+- ninja-build
+- pkg-config
+- libpbkdf2-tiny-perl
+sources:
+- https://github.com/allsopp/pw64.git
+tasks:
+- setup: meson setup build pw64
+- build: ninja -C build
+- test: meson test -vC build
